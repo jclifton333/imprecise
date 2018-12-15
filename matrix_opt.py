@@ -32,7 +32,7 @@ def get_best_matrix(P, u_1, u_2):
   obj = QuadExpr()
   for i in range(n):
     for j in range(m):
-      obj += (vars_[i][j] - P[i, j])**2
+      obj += (vars_[i][j] - P[i, j]) * (vars_[i][j] - P[i, j])
   model_1.setObjective(obj)
 
   # Define sum-to-1 constraint
