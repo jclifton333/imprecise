@@ -1,5 +1,12 @@
 """
 Resolve finite imprecise credence in two-action setting via optimization over stochastic matrices.
+
+Given imprecise credence matrix P and utilities u_1, u_2, under actions 1, 2 resp the problem is
+
+min distance(P', P)
+s.t. P' stochastic
+     P'(u_1 - u_2) > 0, or
+     P'(u_2 - u_1) > 0.
 """
 
 import numpy as np
