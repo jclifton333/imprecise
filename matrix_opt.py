@@ -35,7 +35,7 @@ def get_best_matrix_for_direction(P, u_1, u_2, direction):
   vars_ = [[] for i in range(n)]
   for i in range(n):
     for j in range(m):
-      vars_[i].append(model_1.addVar(lb=0.0, ub=1.0, vtype=GRB.SEMICONT))
+      vars_[i].append(model_1.addVar(lb=0.0, ub=1.0, vtype='C'))
 
   # Define objective
   obj = QuadExpr()
@@ -45,14 +45,14 @@ def get_best_matrix_for_direction(P, u_1, u_2, direction):
   model_1.setObjective(obj, GRB.MINIMIZE)
 
   # Define sum-to-1 constraint
-  sum_constr_expr = LinExpr()
   for i in range(n):
+    sum_constr_expr = LinExpr()
     sum_constr_expr.addTerms([1.0]*m, vars_[i])
     model_1.addConstr(sum_constr_expr == 1)
 
   # Define u(a_1) > u(a_2) constraint
-  ineq_constr_expr = LinExpr()
   for i in range(n):
+    ineq_constr_expr = LinExpr()
     if direction == 1:
       ineq_constr_expr.addTerms(u_1 - u_2, vars_[i])
     elif direction == 2:
