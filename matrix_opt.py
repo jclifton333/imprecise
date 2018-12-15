@@ -10,6 +10,7 @@ s.t. P' stochastic
 """
 
 import numpy as np
+import pdb
 from gurobipy import *
 
 
@@ -41,7 +42,7 @@ def get_best_matrix_for_direction(P, u_1, u_2, direction):
   for i in range(n):
     for j in range(m):
       obj += (vars_[i][j] - P[i, j]) * (vars_[i][j] - P[i, j])
-  model_1.setObjective(obj)
+  model_1.setObjective(obj, GRB.MINIMIZE)
 
   # Define sum-to-1 constraint
   sum_constr_expr = LinExpr()
@@ -53,13 +54,13 @@ def get_best_matrix_for_direction(P, u_1, u_2, direction):
   ineq_constr_expr = LinExpr()
   for i in range(n):
     if direction == 1:
-      ineq_constr_expr.addTerms(vars_[i], u_1 - u_2)
+      ineq_constr_expr.addTerms(u_1 - u_2, vars_[i])
     elif direction == 2:
-      ineq_constr_expr.addTerms(vars_[i], u_2 - u_1)
+      ineq_constr_expr.addTerms(u_2 - u_1, vars_[i])
     model_1.addConstr(ineq_constr_expr >= 0)
 
   model_1.optimize()
-  best_matrix = np.array([np.array([var_ for var_ in row] for row in vars_)])
+  best_matrix = np.array([[var_.X for var_ in row] for row in vars_])
   objective_ = model_1.getObjective().getValue()
   return {'best_matrix': best_matrix, 'objective': objective_}
 
@@ -71,7 +72,10 @@ def get_best_matrix(P, u_1, u_2):
 
 
 if __name__ == "__main__":
+  np.random.seed(3)
   P_ = np.random.dirichlet(alpha=[0.1, 0.6, 0.3], size=10)
   u_1_ = np.array([1, 2, -1])
   u_2_ = np.array([0, -1, 3])
   res_1, res_2 = get_best_matrix(P_, u_1_, u_2_)
+  np.random.shuffle(P_)
+  res_1_shuff, res_2_shuff = get_best_matrix(P_, u_1_, u_2_)
