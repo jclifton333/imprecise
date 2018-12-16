@@ -50,24 +50,27 @@ def l1_matrix_opt_for_direction(P, u_1, u_2, direction):
 
   # Define pos part + neg part = x sum-to-1 constraint
   for i in range(n):
-    sum_constr_expr = LinExpr()
-    sum_constr_expr.addTerms([1.0]*m, [-pos_part[i][j] + neg_part[i][j] for j in range(m)])
-    model_1.addConstr(sum_constr_expr == 1 - P[i, :].sum())
+    # sum_constr_expr = LinExpr()
+    # sum_constr_expr.addTerms([1.0]*m, [-pos_part[i][j] + neg_part[i][j] for j in range(m)])
+    # model_1.addConstr(sum_constr_expr == 1 - P[i, :].sum())
+    model_1.addConstr(quicksum([-pos_part[i][j] + neg_part[i][j] for j in range(m)]) == 1 - P[i, :].sum())
 
   # Define u(a_1) > u(a_2) constraint
   for i in range(n):
-    ineq_constr_expr = LinExpr()
+    # ineq_constr_expr = LinExpr()
+    # if direction == 1:
+    #   ineq_constr_expr.addTerms(u_1 - u_2, [-pos_part[i][j] + neg_part[i][j] for j in range(m)])
+    # elif direction == 2:
+    #   ineq_constr_expr.addTerms(u_2 - u_1, [-pos_part[i][j] + neg_part[i][j] for j in range(m)])
     if direction == 1:
-      ineq_constr_expr.addTerms(u_1 - u_2, [-pos_part[i][j] + neg_part[i][j] for j in range(m)])
+      model_1.addConstr(quicksum([(u_1[j] - u_2[j])*(-pos_part[i][j] + neg_part[i][j]) for j in range(m)]) >= -np.dot(u_1 - u_2, P[i, :]))
     elif direction == 2:
-      ineq_constr_expr.addTerms(u_2 - u_1, [-pos_part[i][j] + neg_part[i][j] for j in range(m)])
-    model_1.addConstr(ineq_constr_expr >= P[i, :].sum())
+      model_1.addConstr(quicksum([(u_2[j] - u_1[j])*(-pos_part[i][j] + neg_part[i][j]) for j in range(m)]) >= -np.dot(u_2 - u_1, P[i, :]))
 
   # Define pos part, neg part > 0 constraint
   for i in range(n):
     for j in range(m):
-      model_1.addConstr(pos_part[i][j] >= 0)
-      model_1.addConstr(neg_part[i][j] >= 0)
+      model_1.addConstr(P[i, j] - pos_part[i][j] + neg_part[i][j] >= 0)
 
   model_1.optimize()
   best_matrix = np.array([[P[i, j] - pos_part[i][j].X + neg_part[i][j].X  for j in range(m)] for i in range(n)])
