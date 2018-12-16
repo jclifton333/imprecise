@@ -34,35 +34,43 @@ def l1_matrix_opt_for_direction(P, u_1, u_2, direction):
   # Define decision variables
   pos_part = [[] for i in range(n)]
   neg_part = [[] for i in range(n)]
+  vars_ = [[] for i in range(n)]
   for i in range(n):
     for j in range(m):
       pos_part[i].append(model_1.addVar(lb=0.0, ub=1.0, vtype='C'))
       neg_part[i].append(model_1.addVar(lb=0.0, ub=1.0, vtype='C'))
+      vars_[i].append(model_1.addVar(lb=0.0, ub=1.0, vtype='C'))
 
   # Define objective
   obj = LinExpr()
   for i in range(n):
     for j in range(m):
-      obj += pos_part[i][j] - neg_part[i][j] 
+      obj += pos_part[i][j] + neg_part[i][j] # Absolute value of difference between P and decision matrix
   model_1.setObjective(obj, GRB.MINIMIZE)
 
-  # Define sum-to-1 constraint
+  # Define pos part + neg part = x sum-to-1 constraint
   for i in range(n):
     sum_constr_expr = LinExpr()
-    sum_constr_expr.addTerms([1.0]*m, pos_part[i] - neg_part[i])
-    model_1.addConstr(sum_constr_expr == 1)
+    sum_constr_expr.addTerms([1.0]*m, [-pos_part[i][j] + neg_part[i][j] for j in range(m)])
+    model_1.addConstr(sum_constr_expr == 1 - P[i, :].sum())
 
   # Define u(a_1) > u(a_2) constraint
   for i in range(n):
     ineq_constr_expr = LinExpr()
     if direction == 1:
-      ineq_constr_expr.addTerms(u_1 - u_2, pos_part[i] - neg_part[i])
+      ineq_constr_expr.addTerms(u_1 - u_2, [-pos_part[i][j] + neg_part[i][j] for j in range(m)])
     elif direction == 2:
-      ineq_constr_expr.addTerms(u_2 - u_1, pos_part[i] - neg_part[i])
-    model_1.addConstr(ineq_constr_expr >= 0)
+      ineq_constr_expr.addTerms(u_2 - u_1, [-pos_part[i][j] + neg_part[i][j] for j in range(m)])
+    model_1.addConstr(ineq_constr_expr >= P[i, :].sum())
+
+  # Define pos part, neg part > 0 constraint
+  for i in range(n):
+    for j in range(m):
+      model_1.addConstr(pos_part[i][j] >= 0)
+      model_1.addConstr(neg_part[i][j] >= 0)
 
   model_1.optimize()
-  best_matrix = np.array([[var_.X for var_ in row] for row in vars_])
+  best_matrix = np.array([[P[i, j] - pos_part[i][j].X + neg_part[i][j].X  for j in range(m)] for i in range(n)])
   objective_ = model_1.getObjective().getValue()
   return {'best_matrix': best_matrix, 'objective': objective_}
 
