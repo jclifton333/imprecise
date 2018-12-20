@@ -48,12 +48,11 @@ def mse_optimal_thresholding(alpha=np.array([1.1, 2, 3]), utility=np.array([1, 1
       if p_min < threshold:
         draw[np.argmin(draw)] = 0.0
         draw /= np.sum(draw)
-      mse += np.sum(draw - u)**2 / n_draws
+      mse += (np.dot(utility, draw) - u)**2 / n_draws
     return mse
 
   mse_objective_part = partial(mse_objective, correct_model_index=2)
-  res = optim.minimize(mse_objective_part, x0=np.random.random(size=number_of_models), bounds=[(0, 0.5)
-                                                                                       for _ in range(number_of_models)])
+  res = optim.minimize_scalar(mse_objective_part, bounds=(0, 1.0), method='bounded')
   return res
 
 
