@@ -6,7 +6,7 @@ import scipy.optimize as optim
 from functools import partial
 
 
-def mse_optimal_weighting(alpha=np.array([1.1, 2, 3]), utility=np.array([1, 1, 1])):
+def mse_optimal_thresholding(alpha=np.array([1.1, 2, 3]), utility=np.array([1, 1, 1])):
   """
   Re-weight credence distribution to optimize utility estimation.
 
@@ -29,7 +29,9 @@ def mse_optimal_weighting(alpha=np.array([1.1, 2, 3]), utility=np.array([1, 1, 1
         alpha_j = alpha[j]
         covariance_matrix[i, j] = covariance_matrix[j, i] = (-alpha_i*alpha_j) / denominator
 
-  def mse_objective(w, correct_model_index):
+  n_draws = 100000
+  draws = np.random.dirichlet(alpha=alpha, size=10000)
+  def mse_objective(threshold, correct_model_index):
     """
     U = diag(u);
     p ~ Dirichlet(alpha);
@@ -39,17 +41,21 @@ def mse_optimal_weighting(alpha=np.array([1.1, 2, 3]), utility=np.array([1, 1, 1
     :param w:
     :return:
     """
-    U_dot_w = np.dot(U, w)
-    U_dot_w_dot_pbar = np.dot(U_dot_w, p_bar)
-    variance = np.dot(U_dot_w.T, np.dot(covariance_matrix, U_dot_w))
-    bias_squared = U_dot_w_dot_pbar**2 - 2*U_dot_w_dot_pbar*utility[correct_model_index]
-    return variance + bias_squared
+    mse = 0.0
+    u = utility[correct_model_index]
+    for draw in draws:
+      p_min = np.min(draw)
+      if p_min < threshold:
+        draw[np.argmin(draw)] = 0.0
+        draw /= np.sum(draw)
+      mse += np.sum(draw - u)**2 / n_draws
+    return mse
 
   mse_objective_part = partial(mse_objective, correct_model_index=2)
-  res = optim.minimize(mse_objective_part, x0=np.random.random(size=number_of_models), bounds=[(0, None)
+  res = optim.minimize(mse_objective_part, x0=np.random.random(size=number_of_models), bounds=[(0, 0.5)
                                                                                        for _ in range(number_of_models)])
   return res
 
 
 if __name__ == "__main__":
-  res_ = mse_optimal_weighting()
+  res_ = mse_optimal_thresholding()
